@@ -1,4 +1,4 @@
-# 🔐 Flask Auth & Users
+# 🔐 Flask Authentication & User Management
 
 Complete authentication & user management API with a live interactive demo UI.
 
