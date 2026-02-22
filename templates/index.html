@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flask Auth &amp; Users — Live Demo</title>
+<style>
+  :root{--bg:#0f172a;--surface:#1e293b;--surface2:#334155;--border:#475569;--accent:#6366f1;--accent2:#818cf8;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--text:#f1f5f9;--muted:#94a3b8;--radius:10px;--font:system-ui,-apple-system,sans-serif}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+  a{color:var(--accent2)}
+  /* Header */
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+  .header h1{font-size:1.2rem;font-weight:700;display:flex;align-items:center;gap:8px}
+  .header h1 span{background:var(--accent);padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:600}
+  .header-right{display:flex;align-items:center;gap:12px}
+  .badge{padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:600}
+  .badge.online{background:#22c55e22;color:var(--green);border:1px solid #22c55e44}
+  .badge.admin{background:#6366f122;color:var(--accent2);border:1px solid #6366f144}
+  .btn{padding:8px 16px;border:none;border-radius:var(--radius);cursor:pointer;font-weight:600;font-size:.85rem;transition:all .15s}
+  .btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent2)}
+  .btn-danger{background:var(--red);color:#fff}.btn-danger:hover{opacity:.85}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}.btn-ghost:hover{color:var(--text);border-color:var(--text)}
+  .btn-sm{padding:5px 12px;font-size:.78rem}
+  /* Layout */
+  .container{display:flex;flex:1;overflow:hidden}
+  .sidebar{width:280px;background:var(--surface);border-right:1px solid var(--border);padding:20px;overflow-y:auto;flex-shrink:0}
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  /* Sidebar nav */
+  .nav-group{margin-bottom:20px}
+  .nav-group-title{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;font-weight:700}
+  .nav-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--radius);cursor:pointer;font-size:.88rem;color:var(--muted);transition:all .15s;margin-bottom:2px}
+  .nav-item:hover,.nav-item.active{background:var(--surface2);color:var(--text)}
+  .nav-item.active{border-left:3px solid var(--accent);color:var(--accent2)}
+  .nav-item .method{font-size:.7rem;font-weight:700;padding:1px 6px;border-radius:4px;min-width:38px;text-align:center}
+  .method.post{background:#22c55e22;color:var(--green)}
+  .method.get{background:#3b82f622;color:#60a5fa}
+  .method.put{background:#eab30822;color:var(--yellow)}
+  .method.delete{background:#ef444422;color:var(--red)}
+  /* Panels */
+  .panels{display:flex;flex:1;overflow:hidden}
+  .panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .panel+.panel{border-left:1px solid var(--border)}
+  .panel-header{padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--border);font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:flex;align-items:center;justify-content:space-between}
+  .panel-body{padding:20px;overflow-y:auto;flex:1}
+  /* Forms */
+  .form-group{margin-bottom:14px}
+  .form-group label{display:block;font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:4px}
+  .form-group input,.form-group textarea{width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:.88rem;font-family:var(--font)}
+  .form-group input:focus,.form-group textarea:focus{outline:none;border-color:var(--accent)}
+  textarea{resize:vertical;min-height:60px}
+  /* Response */
+  .response-status{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:700;margin-bottom:12px}
+  .status-dot{width:8px;height:8px;border-radius:50%}
+  .status-dot.s2{background:var(--green)}.status-dot.s4{background:var(--red)}.status-dot.s5{background:var(--red)}
+  pre.response-body{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;font-size:.82rem;line-height:1.5;overflow-x:auto;white-space:pre-wrap;word-break:break-word;color:#e2e8f0;max-height:100%;flex:1}
+  /* Toast */
+  .toast-container{position:fixed;top:16px;right:16px;z-index:999;display:flex;flex-direction:column;gap:8px}
+  .toast{padding:10px 16px;border-radius:var(--radius);font-size:.85rem;font-weight:500;animation:slideIn .25s ease}
+  .toast.success{background:#22c55e22;color:var(--green);border:1px solid #22c55e44}
+  .toast.error{background:#ef444422;color:var(--red);border:1px solid #ef444444}
+  @keyframes slideIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
+  /* Welcome */
+  .welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;flex:1;padding:40px}
+  .welcome h2{font-size:1.8rem;margin-bottom:8px}
+  .welcome p{color:var(--muted);max-width:480px;line-height:1.6}
+  .welcome .hint{margin-top:20px;font-size:.82rem;background:var(--surface);padding:12px 20px;border-radius:var(--radius);border:1px solid var(--border)}
+  /* Admin table */
+  .user-table{width:100%;border-collapse:collapse;font-size:.85rem}
+  .user-table th{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted);font-size:.75rem;text-transform:uppercase}
+  .user-table td{padding:8px 10px;border-bottom:1px solid var(--surface2)}
+  /* Responsive */
+  @media(max-width:900px){.sidebar{display:none}.panels{flex-direction:column}}
+  @media(max-width:600px){.header{padding:12px 16px}.header h1{font-size:1rem}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🔐 Flask Auth &amp; Users <span>LIVE</span></h1>
+  <div class="header-right" id="headerRight">
+    <span class="badge online">● API Online</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="main">
+    <div class="panels">
+      <div class="panel" id="requestPanel">
+        <div class="panel-header">Request<button class="btn btn-primary btn-sm" id="sendBtn" onclick="sendRequest()" style="display:none">▶ Send</button></div>
+        <div class="panel-body" id="requestBody">
+          <div class="welcome">
+            <h2>Welcome</h2>
+            <p>Pick any endpoint from the sidebar to start testing. Register a user first, then explore all the auth &amp; user management features.</p>
+            <div class="hint">💡 <strong>First registered user becomes admin</strong> — unlocking the admin panel.</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">Response</div>
+        <div class="panel-body" id="responseBody" style="display:flex;flex-direction:column">
+          <div id="responseStatus"></div>
+          <pre class="response-body" id="responseContent" style="display:none"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script>
+const API = '';
+let currentToken = localStorage.getItem('token') || '';
+let currentUser = null;
+let activeEndpoint = null;
+
+const ENDPOINTS = [
+  {group:'Auth', items:[
+    {id:'register', method:'POST', path:'/api/auth/register', fields:['username','email','password'], auth:false},
+    {id:'login', method:'POST', path:'/api/auth/login', fields:['username','password'], auth:false},
+    {id:'logout', method:'POST', path:'/api/auth/logout', fields:[], auth:false},
+    {id:'me', method:'GET', path:'/api/auth/me', fields:[], auth:true},
+  ]},
+  {group:'Profile', items:[
+    {id:'update-profile', method:'PUT', path:'/api/users/me', fields:['display_name','email','bio'], auth:true},
+    {id:'change-password', method:'PUT', path:'/api/users/me/password', fields:['current_password','new_password'], auth:true},
+    {id:'delete-account', method:'DELETE', path:'/api/users/me', fields:[], auth:true, danger:true},
+  ]},
+  {group:'Public', items:[
+    {id:'get-user', method:'GET', path:'/api/users/{username}', fields:['username'], auth:false},
+  ]},
+  {group:'Admin', items:[
+    {id:'list-users', method:'GET', path:'/api/admin/users', fields:['q','page'], auth:true},
+    {id:'toggle-user', method:'PUT', path:'/api/admin/users/{id}', fields:['user_id','is_active','is_admin'], auth:true},
+    {id:'admin-delete', method:'DELETE', path:'/api/admin/users/{id}', fields:['user_id'], auth:true, danger:true},
+  ]},
+  {group:'System', items:[
+    {id:'health', method:'GET', path:'/api/health', fields:[], auth:false},
+  ]},
+];
+
+function buildSidebar(){
+  const sb = document.getElementById('sidebar');
+  sb.innerHTML = ENDPOINTS.map(g => `
+    <div class="nav-group">
+      <div class="nav-group-title">${g.group}</div>
+      ${g.items.map(e => `
+        <div class="nav-item" data-id="${e.id}" onclick="selectEndpoint('${e.id}')">
+          <span class="method ${e.method.toLowerCase()}">${e.method}</span>
+          <span>${e.path}</span>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+function findEndpoint(id){
+  for(const g of ENDPOINTS) for(const e of g.items) if(e.id===id) return e;
+  return null;
+}
+
+function selectEndpoint(id){
+  activeEndpoint = findEndpoint(id);
+  if(!activeEndpoint) return;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.id===id));
+  document.getElementById('sendBtn').style.display='';
+  const rb = document.getElementById('requestBody');
+  const fieldMap = {
+    username:{label:'Username',type:'text',ph:'john_doe'},
+    email:{label:'Email',type:'email',ph:'john@example.com'},
+    password:{label:'Password',type:'password',ph:'min 8 chars'},
+    display_name:{label:'Display Name',type:'text',ph:'John Doe'},
+    bio:{label:'Bio',type:'text',ph:'A short bio',tag:'textarea'},
+    current_password:{label:'Current Password',type:'password',ph:'••••••••'},
+    new_password:{label:'New Password',type:'password',ph:'min 8 chars'},
+    q:{label:'Search',type:'text',ph:'search users...'},
+    page:{label:'Page',type:'number',ph:'1'},
+    user_id:{label:'User ID',type:'number',ph:'1'},
+    is_active:{label:'Active',type:'select',options:['true','false']},
+    is_admin:{label:'Admin',type:'select',options:['true','false']},
+  };
+  let html = `<div style="margin-bottom:14px"><span class="method ${activeEndpoint.method.toLowerCase()}" style="font-size:.85rem;padding:3px 10px">${activeEndpoint.method}</span> <code style="color:var(--accent2)">${activeEndpoint.path}</code></div>`;
+  if(activeEndpoint.auth) html += `<div style="font-size:.78rem;color:var(--yellow);margin-bottom:14px">🔒 Requires authentication</div>`;
+  for(const f of activeEndpoint.fields){
+    const fm = fieldMap[f] || {label:f,type:'text',ph:''};
+    if(fm.tag==='textarea') html += `<div class="form-group"><label>${fm.label}</label><textarea id="f_${f}" placeholder="${fm.ph}"></textarea></div>`;
+    else if(fm.type==='select') html += `<div class="form-group"><label>${fm.label}</label><select id="f_${f}" style="width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:.88rem">${fm.options.map(o=>`<option value="${o}">${o}</option>`).join('')}</select></div>`;
+    else html += `<div class="form-group"><label>${fm.label}</label><input id="f_${f}" type="${fm.type}" placeholder="${fm.ph}"></div>`;
+  }
+  if(activeEndpoint.danger) html += `<div style="font-size:.78rem;color:var(--red);margin-top:8px">⚠️ Destructive action</div>`;
+  rb.innerHTML = html;
+}
+
+async function sendRequest(){
+  if(!activeEndpoint) return;
+  const ep = activeEndpoint;
+  const data = {};
+  for(const f of ep.fields){
+    const el = document.getElementById('f_'+f);
+    if(el) data[f] = el.type==='number'? Number(el.value) : el.value;
+    if(f==='is_active'||f==='is_admin') data[f] = el.value==='true';
+  }
+  let url = API + ep.path;
+  if(url.includes('{username}')&&data.username){url=url.replace('{username}',data.username);delete data.username}
+  if(url.includes('{id}')&&data.user_id){url=url.replace('{id}',data.user_id);delete data.user_id}
+  // GET params
+  if(ep.method==='GET' && Object.keys(data).length){
+    const params = new URLSearchParams();
+    for(const[k,v] of Object.entries(data)) if(v!==''&&v!==0) params.set(k,v);
+    if(params.toString()) url += '?'+params;
+  }
+  const opts = {method:ep.method, headers:{'Content-Type':'application/json'}, credentials:'include'};
+  if(currentToken) opts.headers['Authorization'] = 'Bearer '+currentToken;
+  if(ep.method!=='GET'&&ep.method!=='DELETE') opts.body = JSON.stringify(data);
+  if(ep.method==='DELETE'&&Object.keys(data).length) opts.body = JSON.stringify(data);
+
+  try{
+    const res = await fetch(url, opts);
+    const json = await res.json();
+    showResponse(res.status, json);
+    // Auto-capture token
+    if(json.token){currentToken=json.token;localStorage.setItem('token',currentToken);currentUser=json.user;updateHeader();toast('Authenticated as '+json.user.username,'success')}
+    if(ep.id==='logout'){currentToken='';currentUser=null;localStorage.removeItem('token');updateHeader();toast('Logged out','success')}
+    if(ep.id==='delete-account'&&res.ok){currentToken='';currentUser=null;localStorage.removeItem('token');updateHeader()}
+  }catch(err){showResponse(0,{error:err.message})}
+}
+
+function showResponse(status, json){
+  const sc = status>=200&&status<300?'s2':status>=400?'s4':'s5';
+  document.getElementById('responseStatus').innerHTML = `<div class="response-status"><span class="status-dot ${sc}"></span> ${status||'ERR'}</div>`;
+  const pre = document.getElementById('responseContent');
+  pre.style.display='block';
+  pre.textContent = JSON.stringify(json, null, 2);
+}
+
+function updateHeader(){
+  const hr = document.getElementById('headerRight');
+  if(currentUser){
+    hr.innerHTML = `<span class="badge online">● Online</span>${currentUser.is_admin?'<span class="badge admin">Admin</span>':''}<span style="font-size:.88rem;font-weight:600">${currentUser.username}</span><button class="btn btn-ghost btn-sm" onclick="quickLogout()">Logout</button>`;
+  } else {
+    hr.innerHTML = `<span class="badge online">● API Online</span>`;
+  }
+}
+
+async function quickLogout(){
+  await fetch(API+'/api/auth/logout',{method:'POST',credentials:'include'});
+  currentToken='';currentUser=null;localStorage.removeItem('token');updateHeader();toast('Logged out','success');
+}
+
+function toast(msg,type='success'){
+  const d=document.createElement('div');d.className='toast '+type;d.textContent=msg;
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(()=>d.remove(),3000);
+}
+
+// On load: check if already authed
+async function checkAuth(){
+  if(!currentToken) return;
+  try{
+    const res = await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+currentToken}});
+    if(res.ok){const j=await res.json();currentUser=j.user;updateHeader()}
+    else{currentToken='';localStorage.removeItem('token')}
+  }catch(e){}
+}
+
+buildSidebar();
+checkAuth();
+</script>
+</body>
+</html>
